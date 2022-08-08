@@ -1,0 +1,16 @@
+{
+  "name": "teds-requirement-algorithm",
+  "version": "1.0.0",
+  "main": "scripts.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "fast-csv": "^4.3.6",
+    "readline": "^1.3.0"
+  }
+}

@@ -76,6 +76,7 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   // }
 
   let info = [];
+  let multiReqCourses = [];
 
   const count = {};
 
@@ -94,13 +95,21 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
       let courseInstances = requirement.filter(course => course.stateCourseCode === r.stateCourseCode);
       //requirementCourseId is also different but that's not important
       if (courseInstances.length > 1) {
-        takenCourse.requirementId2 = courseInstances[1].requirementId;
+        //takenCourse.requirementId2 = courseInstances[1].requirementId;
+        takenCourse.requirementDepartmentId = courseInstances.map(course => course.requirementDepartmentId);
+        takenCourse.requirementDepartment = courseInstances.map(course => course.requirementDepartment);
+        takenCourse.requirementId = courseInstances.map(course => course.requirementId);
       }
-      else {
-        takenCourse.requirementId2 = null;
-      }
+      //else {
+      //  takenCourse.requirementId2 = null;
+      //}
       while (count[r.stateCourseCode ] > 0) {
-        info.push(takenCourse);//JSON.parse(JSON.stringify(r)));//[r.requirementDepartmentId, r.stateCourseCode, r.requirementId, r.requirementCreditAmount, r.stateCourseName]);
+        if (typeof takenCourse.requirementId === 'object') {//takenCourse.requirementId2) {
+          multiReqCourses.push(takenCourse);
+        }
+        else {
+          info.push(takenCourse);//JSON.parse(JSON.stringify(r)));//[r.requirementDepartmentId, r.stateCourseCode, r.requirementId, r.requirementCreditAmount, r.stateCourseName]);
+        }
         count[r.stateCourseCode]--;
       }
     }
@@ -195,6 +204,7 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
 
   let depIds = tests.map(obj => parseInt(obj.requirementDepartmentId, 10));
 
+  /*
   //Multireq testing site START---------------------------------------------
 
   let multiReqs = info.filter(course => course.requirementId2 !== null);
@@ -228,6 +238,8 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
       combinedReq = multiReqDirectoryKeys[i];
     }
   }
+
+  //console.log(multiReqDirectory);
   //NOTE: may have to move this whole section to after the requirement objects are created to get the requirementCreditAmount for each requirement
   //since the classes can't be relied upon since they all show the same requirementCreditAmount
   //This could be remedied by also adding requirementCreditAmount2, but just using the created requirement objects should be easier
@@ -235,20 +247,28 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   //let countedCredits = subarrayFinder(courseCredits, tempObj.creditAmount);
 
   //UNCOMMENT THIS TO CONTINUE
-  //for (const key in multiReqDirectory) {
-  //  if (Object.hasOwnProperty.call(multiReqDirectory, key)) {
-  //    
-  //  }
-  //}
-  //
+  for (const key in multiReqDirectory) {
+    if (Object.hasOwnProperty.call(multiReqDirectory, key)) {
+      if (key !== combinedReq) {
+        let specificReqCredits = subarrayFinder(multiReqDirectory[key].map(course => parseFloat(course.courseCreditAmount)), reqs.filter(course => course.requirementId === key)[0].requirementCreditAmount);
+        
+      }
+    }
+  }
+  
 
 
   //Multireq testing site END---------------------------------------------
 
+  */
+
   //Might not need this directory
   let reqDirectory = {};
+  let multiReqDirectory = {};
+
   for (let i = 0; i < depIds.length; i++) {
     reqDirectory[depIds[i]] = [];
+    multiReqDirectory[depIds[i]] = [];
   }
 
   for (let i = 0; i < reqs.length; i++) {
@@ -258,6 +278,8 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
     tempObj.creditAmount = parseFloat(reqs[i].requirementCreditAmount, 10);
     tempObj.passedCredits = 0;
     tempObj.courses = [];
+
+    let emptyTempObj = JSON.parse(JSON.stringify(tempObj));
 
     let courses = info.filter(course => parseInt(course.requirementId, 10) === tempObj.requirementID);//[];
     let courseCredits = courses.map(course => parseFloat(course.courseCreditAmount, 10));
@@ -277,6 +299,9 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
     //console.log(keptCourses);
     let movedReq = JSON.parse(JSON.stringify(tempObj));
     movedReq.creditAmount = null;
+
+    let emptyMovedReq = JSON.parse(JSON.stringify(movedReq));
+
     movedReq.passedCredits = arrSum(courses.map(course => parseFloat(course.courseCreditAmount, 10)));
     movedReq.courses = courses;
     tempObj.passedCredits = arrSum(keptCourses.map(course => parseFloat(course.courseCreditAmount, 10)));
@@ -285,27 +310,67 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
     if (reqs[i].requirementDepartmentId === ELECTIVE_DEPARTMENT_ID) {
       tempObj.creditAmount = null;
       tempObj.courses = keptCourses.concat(courses);
+      emptyTempObj.creditAmount = null;
     }
 
     //ISSUE: for some reason, band being counted is messed up, and only 1 credit is stored in the requirement despite it not being fulfilled
     reqDirectory[reqs[i].requirementDepartmentId].push(tempObj);
+    multiReqDirectory[reqs[i].requirementDepartmentId].push(emptyTempObj);
 
     //MAYBE ADD loop that checks if the req already exists in electives, if so just add the courses to that req, if not add the new req
     if (courses.length !== 0 && reqs[i].requirementDepartmentId !== '28') {
       //movedReq.passedCredits = arrSum(movedReq.courses.map(course => parseFloat(course.courseCreditAmount, 10)));
       reqDirectory[ELECTIVE_DEPARTMENT_ID].push(movedReq);
+      multiReqDirectory[ELECTIVE_DEPARTMENT_ID].push(emptyMovedReq);
     }
     //reqDirectory[reqs[i].requirementDepartmentId].push(parseInt(reqs[i].requirementId, 10));
   }
 
+
   for (let i = 0; i < depIds.length; i++) {
     reqDirectory[depIds[i]].sort((a,b) => {return parseInt(a.requirementID, 10) - parseInt(b.requirementID, 10)});
+    multiReqDirectory[depIds[i]].sort((a,b) => {return parseInt(a.requirementID, 10) - parseInt(b.requirementID, 10)});
   }
 
   //console.log(reqDirectory);
+  //console.log(multiReqDirectory);
   //console.log(reqs.filter(obj => obj.requirementDepartmentId === '4'));
 
+  //MULTIREQ COURSE CODE GOES HERE
+  //for (let i = 0; i < multiReqCourses.length; i++) {
+  //  let dep1 = reqs.filter(courses => courses.requirementId === multiReqCourses[i].requirementId)[0].requirementDepartmentId;
+  //  let dep2 = reqs.filter(courses => courses.requirementId === multiReqCourses[i].requirementId2)[0].requirementDepartmentId;
+  //}
+
+  //IDEA: instead of requirementId and requirementId2, just make requirementId an array for the multireq courses (or for all courses for equality) and go through them with a for loop during this process to account for more than 2 reqs
+  let editCounter;
+  while (editCounter !== 0) {
+    editCounter = 0;
+    for (let i = 0; i < multiReqCourses.length; i++) {
+      for (let j = 0; j < multiReqCourses[i].requirementId.length; j++) {
+        //let dep = reqs.filter(courses => courses.requirementId === multiReqCourses[i].requirementId)[0].requirementDepartmentId;
+        let dep = multiReqCourses[i].requirementDepartmentId[j];
+        let req = parseInt(multiReqCourses[i].requirementId[j], 10);
+
+        let reqPath = reqDirectory[dep].filter(obj => obj.requirementID === req)[0];
+        console.log(reqPath);
+      }
+    }
+  }
   
+  //console.log(info, multiReqCourses);
+  //IDEA: make a copy of the reqdirectory before its courses are filled out (or just make an empty copy as the real one is being made)
+  //then, for each of the multireq courses, check how they fit into the real reqdirectory (through absolute value) 
+  //and if they fit well add them to the req of the copy reqdirectory. then, as all of the courses are being looked at, 
+  //if another course fits better than one of the other courses (like abs val is closer to 0 so it wastes less credits), course that
+  //doesn't fit as well is removed and ADDED BACK INTO THE MULTIREQCOURSES ARRAY TO BE PARSED AGAIN
+  //this repeats until all of the courses are in their most optimal positions
+  //for any course that doesn't fit into anything, put into electives array and at the end do the algorithm again this time
+  //with the electives array to make sure none of them fit better
+  //you can keep doing this until, after parsing through the electives array, no changes are made (ex: changecount is 0) and multireqcourses is empty
+  //instead of a separate array you could just KEEP LOOPING THROUGH MULTIREQCOURSES AND KEEP THE ELECTIVES (ONES THAT DON'T FIT) IN THERE and
+  //when it's parsed through a whole time without any changes (while loop around a for loop) it stops
+
 
 
   let initialized = [];
@@ -349,9 +414,9 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
 
 
   //addCourse(1, 40004390, info[0]);
-  for (let i = 0; i < studentProfile.credits[0].data.length; i++) {
-     console.log(studentProfile.credits[0].data[i]);
-  }
+  //for (let i = 0; i < studentProfile.credits[0].data.length; i++) {
+  //  console.log(studentProfile.credits[0].data[i]);
+  //}
   //studentProfile.credits[0].data.forEach(element => {
   //  console.log(element);
     
@@ -372,6 +437,7 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   //console.log(studentProfile.credits[0].data);//[0].requirements[0].courses);
   //console.log(courseIds);
   //console.log(info);
+  //console.log(multiReqCourses);
 }).catch(err => {
   console.log(err.message);
 });

@@ -105,10 +105,10 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
       //}
       while (count[r.stateCourseCode ] > 0) {
         if (typeof takenCourse.requirementId === 'object') {//takenCourse.requirementId2) {
-          multiReqCourses.push(takenCourse);
+          multiReqCourses.push(JSON.parse(JSON.stringify(takenCourse)));
         }
         else {
-          info.push(takenCourse);//JSON.parse(JSON.stringify(r)));//[r.requirementDepartmentId, r.stateCourseCode, r.requirementId, r.requirementCreditAmount, r.stateCourseName]);
+          info.push(JSON.parse(JSON.stringify(takenCourse)));//JSON.parse(JSON.stringify(r)));//[r.requirementDepartmentId, r.stateCourseCode, r.requirementId, r.requirementCreditAmount, r.stateCourseName]);
         }
         count[r.stateCourseCode]--;
       }
@@ -116,15 +116,25 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   }
 
   info.sort((a,b) => {return parseInt(a.stateCourseCode, 10) - parseInt(b.stateCourseCode, 10)});
+  multiReqCourses.sort((a,b) => {return parseInt(a.stateCourseCode, 10) - parseInt(b.stateCourseCode, 10)});
   student.sort((a,b) => {return parseInt(a.course_id, 10) - parseInt(b.course_id, 10)});
 
   let tempArr = info.slice();
+  let multiTempArr = multiReqCourses.slice();
+  let multiCourseReqIds = multiReqCourses.map(course => course.stateCourseCode);
+  let singleReqStudent = student.filter(course => multiCourseReqIds.indexOf(course.course_id) === -1);
+  let multiReqStudent = student.filter(course => multiCourseReqIds.indexOf(course.course_id) !== -1);
+
 
   for (let i = 0; i < tempArr.length; i++) {
-    info[i].courseCreditAmount = student[i].transcript_credit;
+    info[i].courseCreditAmount = singleReqStudent[i].transcript_credit;
+  }
+  for (let i = 0; i < multiTempArr.length; i++) {
+    multiReqCourses[i].courseCreditAmount = multiReqStudent[i].transcript_credit;
   }
 
   info = tempArr.sort((a,b) => {return a.requirementDepartmentId - b.requirementDepartmentId});
+  multiReqCourses = multiTempArr.sort((a,b) => {return a.requirementDepartmentId - b.requirementDepartmentId});
 
   let acquired = 0;
   for (let i = 0; i < info.length; i++) {
@@ -352,8 +362,20 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
         let dep = multiReqCourses[i].requirementDepartmentId[j];
         let req = parseInt(multiReqCourses[i].requirementId[j], 10);
 
+        
         let reqPath = reqDirectory[dep].filter(obj => obj.requirementID === req)[0];
-        console.log(reqPath);
+        let staticCredits = reqPath.passedCredits;
+        let target = reqPath.creditAmount - staticCredits;
+        if (target <= 0) {
+          continue;
+        }
+        let multiReqPath = multiReqDirectory[dep].filter(obj => obj.requirementID === req)[0];
+        let mutableCredits = multiReqPath.courses.map(course => parseFloat(course.courseCreditAmount, 10));
+        mutableCredits.push(0.25, 0.5, 0.5, 1, 2);
+        let courseCreditObj = new Number(parseFloat(multiReqCourses[i].courseCreditAmount, 10));
+        //console.log(courseCreditObj);
+        let result = subarrayFinder(mutableCredits.concat([courseCreditObj]), target);
+        //console.log(result);
       }
     }
   }
@@ -415,7 +437,10 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
 
   //addCourse(1, 40004390, info[0]);
   //for (let i = 0; i < studentProfile.credits[0].data.length; i++) {
-  //  console.log(studentProfile.credits[0].data[i]);
+  //  //console.log(studentProfile.credits[0].data[i].requirements);
+  //  for (let j = 0; j < studentProfile.credits[0].data[i].requirements.length; j++) {
+  //    console.log(studentProfile.credits[0].data[i].requirements[j]);
+  //  }
   //}
   //studentProfile.credits[0].data.forEach(element => {
   //  console.log(element);
@@ -444,8 +469,10 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
 
 
 
-
 //readData();
+
+//FUNCTIONS
+//-------------------------------------------------------------------------------
 
 const creditCalc = (idType, id, isAcquiredCredits, courses) => {
   let key;
@@ -564,9 +591,29 @@ function subarrayFinder(arr, target) {
       equal.push(result[i]);
     }
   }
-  equal.sort((a, b) => a.length - b.length);
-  //console.log(less, equal, greater);
+  // equal.sort((a, b) => a.length - b.length);
+  // //console.log(less);
+  // //console.log(less, equal, greater);
+  // greater = greater.filter(credits => arrSum(credits) === arrSum(greater[0]));
+  // greater.sort((a, b) => a.length - b.length);
+  // greater.filter(credits => credits.length === greater[0].length);
+  // let tempCredits = greater.filter(credits => !credits.some(credit => typeof credit === 'object'));
+  // if (tempCredits.length !== 0) {
+  //   greater = tempCredits;
+  // }
+  
 
+  // less = less.filter(credits => arrSum(credits) === arrSum(less[0]));
+  // less.sort((a, b) => a.length - b.length);
+  // less.filter(credits => credits.length === less[0].length);
+  //console.log(less);
+
+  equal = sortOptimalCredits(equal, true);
+  greater = sortOptimalCredits(greater, false);
+  less = sortOptimalCredits(less, false);
+  //console.log(equal, greater, less);
+  //FIX: remove unneeded numbers from greater and less (EX: for greater, use filter and filter out the arrays whose sums are not equal to the sum of the array at index 0 (the smallest sum) then sort the filtered array by length)
+  //POTENTIAL FIX: filter the sorted less and greater so they only include the smallest length, then check all of the arrays and if one includes an object DON'T return that one
   if (equal.length > 0) {
     return equal[0];
   }
@@ -578,6 +625,21 @@ function subarrayFinder(arr, target) {
   }
 }
 
+function sortOptimalCredits(arr, isEqual) {
+  if (arr.length === 0) {
+    return arr;
+  }
+  if (!isEqual) {
+    arr = arr.filter(credits => arrSum(credits) === arrSum(arr[0]));
+  }
+  arr.sort((a, b) => a.length - b.length);
+  arr.filter(credits => credits.length === arr[0].length);
+  let tempCredits = arr.filter(credits => !credits.some(credit => typeof credit === 'object'));
+  if (tempCredits.length !== 0) {
+    return tempCredits;
+  }
+  return arr;
+}
 
 
 

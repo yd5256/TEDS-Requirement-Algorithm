@@ -325,7 +325,7 @@ function powerSet(list) {
   return set;
 }
 
-console.log(subarrayFinder([5, 3, 8, 2, 11], 16));
+//console.log(subarrayFinder([5, 3, 8, 2, 11], 16));
 
 const bruteTest = function(arr, len, target) {
     let currSum = 0;
@@ -340,6 +340,10 @@ const bruteTest = function(arr, len, target) {
     }
 }
 
+let test = [[2, 4],[5, 6],[3, new Number(2)]];
+let tempTest = test.filter(credits => !credits.some(credit => typeof credit === 'object'));
+console.log(tempTest);
+//console.log(typeof test === 'object');
 
 //console.log(bruteTest([11, 5, 8, 2, 3], 5, 16));
 //subArraySum([11, 2, 3, 2, 3], 5, 16);

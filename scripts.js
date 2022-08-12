@@ -357,6 +357,14 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   while (editCounter !== 0) {
     editCounter = 0;
     for (let i = 0; i < multiReqCourses.length; i++) {
+      //let optimal = ['', [], 0, 0];
+      let optimal = {
+        requirementID: '',
+        depID: '',
+        courseCredits: [],
+        creditSum: 0,
+        target: 0
+      };
       for (let j = 0; j < multiReqCourses[i].requirementId.length; j++) {
         //let dep = reqs.filter(courses => courses.requirementId === multiReqCourses[i].requirementId)[0].requirementDepartmentId;
         let dep = multiReqCourses[i].requirementDepartmentId[j];
@@ -371,11 +379,44 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
         }
         let multiReqPath = multiReqDirectory[dep].filter(obj => obj.requirementID === req)[0];
         let mutableCredits = multiReqPath.courses.map(course => parseFloat(course.courseCreditAmount, 10));
-        mutableCredits.push(0.25, 0.5, 0.5, 1, 2);
+        //mutableCredits.push(0.25, 0.5, 0.5, 1, 2);
         let courseCreditObj = new Number(parseFloat(multiReqCourses[i].courseCreditAmount, 10));
         //console.log(courseCreditObj);
         let result = subarrayFinder(mutableCredits.concat([courseCreditObj]), target);
+        let resultSum = arrSum(result);
+        if (result.some(creditAmt => typeof creditAmt === 'object')) { // && (Math.abs(target - resultSum) < Math.abs(optimal.target - optimal.creditSum))) {
+          let isOptimal = false;
+          if (!optimal.requirementID) {
+            isOptimal = true;
+          }
+          if (optimal.target - optimal.creditSum > 0) {
+            if (target - resultSum <= 0 || Math.abs(target - resultSum) < Math.abs(optimal.target - optimal.creditSum)) {
+              isOptimal = true;
+            }
+          }
+          else if (optimal.target - optimal.creditSum < 0) {
+            if (target - resultSum === 0 || (target - resultSum <= 0 && Math.abs(target - resultSum) < Math.abs(optimal.target - optimal.creditSum))) {
+              isOptimal = true;
+            }
+          }
+
+          if (isOptimal) {
+            optimal = {
+              requirementID: req,
+              depID: dep,
+              courseCredits: result.map(credit => Number(credit)),
+              creditSum: resultSum,
+              target: target
+            }
+          }
+        }
         //console.log(result);
+      }
+      if (optimal.requirementID) {
+        let addPath = multiReqDirectory[optimal.depID].filter(req => req.requirementID === optimal.requirementID)[0].courses;
+        addPath.push(multiReqCourses.splice(i, 1)[0]);
+        i--;
+        editCounter++;
       }
     }
   }
@@ -463,6 +504,7 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   //console.log(courseIds);
   //console.log(info);
   //console.log(multiReqCourses);
+  //console.log(multiReqDirectory);
 }).catch(err => {
   console.log(err.message);
 });

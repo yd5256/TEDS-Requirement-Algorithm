@@ -340,9 +340,9 @@ const bruteTest = function(arr, len, target) {
     }
 }
 
-let test = [[2, 4],[5, 6],[3, new Number(2)]];
-let tempTest = test.filter(credits => !credits.some(credit => typeof credit === 'object'));
-console.log(tempTest);
+//let test = [[2, 4],[5, 6],[3, new Number(2)]];
+//let tempTest = test.filter(credits => !credits.some(credit => typeof credit === 'object'));
+//console.log(tempTest);
 //console.log(typeof test === 'object');
 
 //console.log(bruteTest([11, 5, 8, 2, 3], 5, 16));

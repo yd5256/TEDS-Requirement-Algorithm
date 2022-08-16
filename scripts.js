@@ -130,7 +130,7 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
     info[i].courseCreditAmount = singleReqStudent[i].transcript_credit;
   }
   for (let i = 0; i < multiTempArr.length; i++) {
-    multiReqCourses[i].courseCreditAmount = multiReqStudent[i].transcript_credit;
+    multiReqCourses[i].courseCreditAmount = new Number(multiReqStudent[i].transcript_credit);
   }
 
   info = tempArr.sort((a,b) => {return a.requirementDepartmentId - b.requirementDepartmentId});
@@ -346,6 +346,8 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   //console.log(multiReqDirectory);
   //console.log(reqs.filter(obj => obj.requirementDepartmentId === '4'));
 
+  //FAILED ALGORITHM START-----
+
   //MULTIREQ COURSE CODE GOES HERE
   //for (let i = 0; i < multiReqCourses.length; i++) {
   //  let dep1 = reqs.filter(courses => courses.requirementId === multiReqCourses[i].requirementId)[0].requirementDepartmentId;
@@ -353,74 +355,81 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   //}
 
   //IDEA: instead of requirementId and requirementId2, just make requirementId an array for the multireq courses (or for all courses for equality) and go through them with a for loop during this process to account for more than 2 reqs
-  let editCounter;
-  while (editCounter !== 0) {
-    editCounter = 0;
-    for (let i = 0; i < multiReqCourses.length; i++) {
-      //let optimal = ['', [], 0, 0];
-      let optimal = {
-        requirementID: '',
-        depID: '',
-        courseCredits: [],
-        creditSum: 0,
-        target: 0
-      };
-      for (let j = 0; j < multiReqCourses[i].requirementId.length; j++) {
-        //let dep = reqs.filter(courses => courses.requirementId === multiReqCourses[i].requirementId)[0].requirementDepartmentId;
-        let dep = multiReqCourses[i].requirementDepartmentId[j];
-        let req = parseInt(multiReqCourses[i].requirementId[j], 10);
+  
+  // let editCounter;
+  // while (editCounter !== 0) {
+  //   editCounter = 0;
+  //   for (let i = 0; i < multiReqCourses.length; i++) {
+  //     //let optimal = ['', [], 0, 0];
+  //     let optimal = {
+  //       requirementID: '',
+  //       depID: '',
+  //       courseCredits: [],
+  //       creditSum: 0,
+  //       target: 0
+  //     };
+  //     for (let j = 0; j < multiReqCourses[i].requirementId.length; j++) {
+  //       //let dep = reqs.filter(courses => courses.requirementId === multiReqCourses[i].requirementId)[0].requirementDepartmentId;
+  //       let dep = multiReqCourses[i].requirementDepartmentId[j];
+  //       let req = parseInt(multiReqCourses[i].requirementId[j], 10);
 
         
-        let reqPath = reqDirectory[dep].filter(obj => obj.requirementID === req)[0];
-        let staticCredits = reqPath.passedCredits;
-        let target = reqPath.creditAmount - staticCredits;
-        if (target <= 0) {
-          continue;
-        }
-        let multiReqPath = multiReqDirectory[dep].filter(obj => obj.requirementID === req)[0];
-        let mutableCredits = multiReqPath.courses.map(course => parseFloat(course.courseCreditAmount, 10));
-        //mutableCredits.push(0.25, 0.5, 0.5, 1, 2);
-        let courseCreditObj = new Number(parseFloat(multiReqCourses[i].courseCreditAmount, 10));
-        //console.log(courseCreditObj);
-        let result = subarrayFinder(mutableCredits.concat([courseCreditObj]), target);
-        let resultSum = arrSum(result);
-        if (result.some(creditAmt => typeof creditAmt === 'object')) { // && (Math.abs(target - resultSum) < Math.abs(optimal.target - optimal.creditSum))) {
-          let isOptimal = false;
-          if (!optimal.requirementID) {
-            isOptimal = true;
-          }
-          if (optimal.target - optimal.creditSum > 0) {
-            if (target - resultSum <= 0 || Math.abs(target - resultSum) < Math.abs(optimal.target - optimal.creditSum)) {
-              isOptimal = true;
-            }
-          }
-          else if (optimal.target - optimal.creditSum < 0) {
-            if (target - resultSum === 0 || (target - resultSum <= 0 && Math.abs(target - resultSum) < Math.abs(optimal.target - optimal.creditSum))) {
-              isOptimal = true;
-            }
-          }
+  //       let reqPath = reqDirectory[dep].filter(obj => obj.requirementID === req)[0];
+  //       let staticCredits = reqPath.passedCredits;
+  //       let target = reqPath.creditAmount - staticCredits;
+  //       if (target <= 0) {
+  //         continue;
+  //       }
+  //       let multiReqPath = multiReqDirectory[dep].filter(obj => obj.requirementID === req)[0];
+  //       let mutableCredits = multiReqPath.courses.map(course => parseFloat(course.courseCreditAmount, 10));
+  //       //mutableCredits.push(0.25, 0.5, 0.5, 1, 2);
+  //       let courseCreditObj = new Number(parseFloat(multiReqCourses[i].courseCreditAmount, 10));
+  //       //console.log(courseCreditObj);
+  //       let result = subarrayFinder(mutableCredits.concat([courseCreditObj]), target);
+  //       let resultSum = arrSum(result);
 
-          if (isOptimal) {
-            optimal = {
-              requirementID: req,
-              depID: dep,
-              courseCredits: result.map(credit => Number(credit)),
-              creditSum: resultSum,
-              target: target
-            }
-          }
-        }
-        //console.log(result);
-      }
-      if (optimal.requirementID) {
-        let addPath = multiReqDirectory[optimal.depID].filter(req => req.requirementID === optimal.requirementID)[0].courses;
-        addPath.push(multiReqCourses.splice(i, 1)[0]);
-        i--;
-        editCounter++;
-      }
-    }
-  }
-  
+  //       //issue: life science is left empty because biology is being put in the both category
+  //       //potential fix: check if the final optimal sum is equal to any of the non-optimal sums (which are stored in an array), if so, skip the current course and come back to it after the rest of the courses are put in
+  //       //That might not work because all of the courses have two reqs that take the same number of credits
+  //       if (result.some(creditAmt => typeof creditAmt === 'object')) { // && (Math.abs(target - resultSum) < Math.abs(optimal.target - optimal.creditSum))) {
+  //         let isOptimal = false;
+  //         if (!optimal.requirementID) {
+  //           isOptimal = true;
+  //         }
+  //         if (optimal.target - optimal.creditSum > 0) {
+  //           if (target - resultSum <= 0 || Math.abs(target - resultSum) < Math.abs(optimal.target - optimal.creditSum)) {
+  //             isOptimal = true;
+  //           }
+  //         }
+  //         else if (optimal.target - optimal.creditSum < 0) {
+  //           if (target - resultSum === 0 || (target - resultSum <= 0 && Math.abs(target - resultSum) < Math.abs(optimal.target - optimal.creditSum))) {
+  //             isOptimal = true;
+  //           }
+  //         }
+
+  //         if (isOptimal) {
+  //           optimal = {
+  //             requirementID: req,
+  //             depID: dep,
+  //             courseCredits: result.map(credit => Number(credit)),
+  //             creditSum: resultSum,
+  //             target: target
+  //           }
+  //         }
+  //       }
+  //       //console.log(result);
+  //     }
+  //     if (optimal.requirementID) {
+  //       let addPath = multiReqDirectory[optimal.depID].filter(req => req.requirementID === optimal.requirementID)[0].courses;
+  //       addPath.push(multiReqCourses.splice(i, 1)[0]);
+  //       i--;
+  //       editCounter++;
+  //     }
+  //   }
+  // }
+  // console.log(multiReqDirectory['3'][2]);
+  // console.log(multiReqCourses);
+
   //console.log(info, multiReqCourses);
   //IDEA: make a copy of the reqdirectory before its courses are filled out (or just make an empty copy as the real one is being made)
   //then, for each of the multireq courses, check how they fit into the real reqdirectory (through absolute value) 
@@ -434,7 +443,7 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   //instead of a separate array you could just KEEP LOOPING THROUGH MULTIREQCOURSES AND KEEP THE ELECTIVES (ONES THAT DON'T FIT) IN THERE and
   //when it's parsed through a whole time without any changes (while loop around a for loop) it stops
 
-
+  //FAILED ALGORITHM END-----
 
   let initialized = [];
   for (let i = 0; i < depIds.length; i++) {
@@ -504,7 +513,7 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   //console.log(courseIds);
   //console.log(info);
   //console.log(multiReqCourses);
-  //console.log(multiReqDirectory);
+  //console.log(multiReqDirectory['1']);
 }).catch(err => {
   console.log(err.message);
 });
@@ -683,6 +692,44 @@ function sortOptimalCredits(arr, isEqual) {
   return arr;
 }
 
+
+
+function* productGen(arr, cur = []){
+  if (arr.length < 1) yield cur;
+  else {
+    for (let item of arr[0]) {
+      yield* productGen(arr.slice(1), [...cur, item]);
+    }
+  }
+}
+
+//INPUT: 2D array of the requirementId arrays of the courses
+function arrayComboFinder(arr, directory) {
+
+  let courseReqs = arr.map(course => course.requirementId);
+
+  let result = [];
+  for (let combo of productGen(courseReqs)) {
+    result.push(combo);
+  }
+  //result.sort((a, b) => arrSum(a) - arrSum(b));
+
+  let mostReqsFilled = {
+    numReqsFilled: 0,
+    combinationArray: []
+  };
+
+  let directoryCopy = JSON.parse(JSON.stringify(directory));
+  for (let i = 0; i < result.length; i++) {
+    let combi = result[i];
+    directoryCopy = JSON.parse(JSON.stringify(directory));
+    for (let j = 0; j < arr.length; j++) {
+      let course = arr[j];
+      let req = combi[j];
+      directoryCopy[course.requirementDepartmentId[course.requirementId.indexOf(req.toString())]].filter(obj => obj.requirementID === req)[0].courses.push(course);
+    }
+  }
+}
 
 
 /*

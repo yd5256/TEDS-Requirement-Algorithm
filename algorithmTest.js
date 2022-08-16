@@ -354,3 +354,31 @@ const bruteTest = function(arr, len, target) {
 //b. there are no more courses left
 //POTENTIAL PROBLEM: how will decimal values be accounted for when adding together (ex: if the credit amount is 1 it shouldn't add .5 then 1)
 
+
+
+
+
+var a = [1, 2, 3];
+var b = ["orange", "poke"];
+var c = ["melon", "table", 93, 71, "rock"];
+var arrayA = [a, b, c];
+
+function* productGen(arr, cur = []){
+  if (arr.length < 1) yield cur;
+  else {
+    for (let item of arr[0]) {
+      yield* productGen(arr.slice(1), [...cur, item]);
+    }
+  }
+}
+
+
+let testArr = [];
+for (let combo of productGen(arrayA)){
+  // do something with combo
+  testArr.push(combo);
+
+}
+
+//console.log(testArr);
+console.log(new Number(1.5));

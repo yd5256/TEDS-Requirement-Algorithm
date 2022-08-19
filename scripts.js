@@ -61,8 +61,8 @@ async function testGetData(stuFile, reqFile) {
   }
 }
 //DO EVERYTHING IN TESTGETDATA
-const ELECTIVE_DEPARTMENT_ID = '28';
-const ELECTIVE_CREDIT_REQUIREMENT = 3.5;
+let ELECTIVE_DEPARTMENT_ID;// = '28';
+let ELECTIVE_CREDIT_REQUIREMENT;// = 3.5;
 testGetData("./student2.csv", "./requirement.csv").then(result => {
   let student = result[0];
   let requirement = result[1];
@@ -130,7 +130,7 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
     info[i].courseCreditAmount = singleReqStudent[i].transcript_credit;
   }
   for (let i = 0; i < multiTempArr.length; i++) {
-    multiReqCourses[i].courseCreditAmount = new Number(multiReqStudent[i].transcript_credit);
+    multiReqCourses[i].courseCreditAmount = /*new Number*/multiReqStudent[i].transcript_credit;
   }
 
   info = tempArr.sort((a,b) => {return a.requirementDepartmentId - b.requirementDepartmentId});
@@ -213,6 +213,8 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   
 
   let depIds = tests.map(obj => parseInt(obj.requirementDepartmentId, 10));
+  ELECTIVE_DEPARTMENT_ID = Math.max.apply(Math, depIds).toString();
+  ELECTIVE_CREDIT_REQUIREMENT = Math.max.apply(Math, reqs.filter(course => course.requirementDepartmentId === ELECTIVE_DEPARTMENT_ID).map(course => parseFloat(course.requirementCreditAmount, 10)));
 
   /*
   //Multireq testing site START---------------------------------------------
@@ -445,6 +447,9 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
 
   //FAILED ALGORITHM END-----
 
+  let tempDirectory = arrayComboFinder(multiReqCourses, reqDirectory);
+  console.log(tempDirectory);
+
   let initialized = [];
   for (let i = 0; i < depIds.length; i++) {
     if (initialized.indexOf(depIds[i]) === -1) {
@@ -515,7 +520,7 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   //console.log(multiReqCourses);
   //console.log(multiReqDirectory['1']);
 }).catch(err => {
-  console.log(err.message);
+  console.log(err);//.message);
 });
 
 
@@ -714,21 +719,91 @@ function arrayComboFinder(arr, directory) {
   }
   //result.sort((a, b) => arrSum(a) - arrSum(b));
 
-  let mostReqsFilled = {
-    numReqsFilled: 0,
-    combinationArray: []
-  };
+
 
   let directoryCopy = JSON.parse(JSON.stringify(directory));
+
+  let mostReqsFilled = {
+    numReqsFilled: 0,
+    combinationArray: [],
+    directory: JSON.parse(JSON.stringify(directory))
+  };
+
   for (let i = 0; i < result.length; i++) {
     let combi = result[i];
     directoryCopy = JSON.parse(JSON.stringify(directory));
     for (let j = 0; j < arr.length; j++) {
       let course = arr[j];
       let req = combi[j];
-      directoryCopy[course.requirementDepartmentId[course.requirementId.indexOf(req.toString())]].filter(obj => obj.requirementID === req)[0].courses.push(course);
+      //console.log(req);
+      directoryCopy[course.requirementDepartmentId[course.requirementId.indexOf(req.toString())]].filter(obj => obj.requirementID === parseInt(req, 10))[0].courses.push(course);
+    }
+    
+    //Potiential add-on: do the moving courses to electives here instead of only on the final product to include electives in the reqCount
+    let completedCount = 0;
+    for (const key in directoryCopy) {
+      if (Object.hasOwnProperty.call(directoryCopy, key)) {
+        const element = directoryCopy[key];
+        for (let j = 0; j < element.length; j++) {
+          //passedCredits, creditAmount
+          //console.log(element[j]);
+          if (key !== ELECTIVE_DEPARTMENT_ID) {
+            let courseArray = element[j].courses;
+            let courseCredits = courseArray.map(course => parseFloat(course.courseCreditAmount), 10)
+            let courseSum = arrSum(courseCredits);
+            if (courseSum > element[j].creditAmount) {
+              let newCombi = subarrayFinder(courseCredits, element[j].creditAmount);
+              let combiDifferences = courseCredits.filter(credit => newCombi.indexOf(credit) === -1);
+              if (combiDifferences.length > 0) {
+                let electiveCourses = [];
+                for (let k = 0; k < combiDifferences.length; k++) {
+                  electiveCourses.push(courseArray.splice(courseCredits.indexOf(combiDifferences[k]), 1)[0]);
+                }
+                let electiveIndex = directoryCopy[ELECTIVE_DEPARTMENT_ID].map(req => req.requirementID).indexOf(parseInt(element[j].requirementID, 10));
+                if (electiveIndex === -1) {
+                  let reqCopy = JSON.parse(JSON.stringify(element[j]));
+                  reqCopy.courses = [];
+                  reqCopy.creditAmount = null;
+                  directoryCopy[ELECTIVE_DEPARTMENT_ID].push(reqCopy);
+                  electiveIndex = directoryCopy[ELECTIVE_DEPARTMENT_ID].length - 1;
+                }
+                directoryCopy[ELECTIVE_DEPARTMENT_ID][electiveIndex].courses.concat(electiveCourses);
+                directoryCopy[ELECTIVE_DEPARTMENT_ID][electiveIndex].passedCredits = arrSum(directoryCopy[ELECTIVE_DEPARTMENT_ID][electiveIndex].courses.map(course => parseFloat(course.courseCreditAmount, 10)));
+                //sort the electice req courses and normal req courses by reqid
+              }
+            }
+          }
+          element[j].passedCredits = arrSum(element[j].courses.map(course => parseFloat(course.courseCreditAmount, 10)));
+          if (element[j].creditAmount !== null && element[j].passedCredits >= element[j].creditAmount) {
+            completedCount++;
+          }
+        }
+      }
+    }
+    directoryCopy[ELECTIVE_DEPARTMENT_ID].sort((a,b) => {return parseInt(a.requirementID, 10) - parseInt(b.requirementID, 10)});
+
+    //Add an if before this and make this an else if
+    //The if should be if the counts are equal take the one with more requirements filled which should be tracked (numReqsUsed)
+    let isMoreOptimal = false;
+    if (completedCount === mostReqsFilled.numReqsFilled) {
+      if (new Set(combi).size > new Set(mostReqsFilled.combinationArray).size) {
+        isMoreOptimal = true;
+      }
+    }
+    else if (completedCount > mostReqsFilled.numReqsFilled) {
+      isMoreOptimal = true;
+    }
+
+    if (isMoreOptimal) {
+      mostReqsFilled = {
+        numReqsFilled: completedCount,
+        combinationArray: combi,
+        directory: JSON.parse(JSON.stringify(directoryCopy))
+      }
     }
   }
+  //console.log(mostReqsFilled.combinationArray, arr);
+  return mostReqsFilled.directory;
 }
 
 

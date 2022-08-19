@@ -379,6 +379,8 @@ for (let combo of productGen(arrayA)){
   testArr.push(combo);
 
 }
-
+let test1 = [1, 3, 5, 7, 9];
+let test2 = [1, 3, 5, 7, 9];
 //console.log(testArr);
-console.log(new Number(1.5));
+console.log(test1.equals(test2));
+

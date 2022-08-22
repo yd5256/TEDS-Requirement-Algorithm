@@ -382,5 +382,16 @@ for (let combo of productGen(arrayA)){
 let test1 = [1, 3, 5, 7, 9];
 let test2 = [1, 3, 5, 7, 9];
 //console.log(testArr);
-console.log(test1.equals(test2));
+//console.log(test1.equals(test2));
 
+
+
+function difference(a, b) {
+  return a.filter(function(v) {
+      return !this.get(v) || !this.set(v, this.get(v) - 1);
+  }, b.reduce( (acc, v) => acc.set(v, (acc.get(v) || 0) + 1), new Map() ));
+}
+
+let t = [1, 1, 2];
+let tt = [2, 1];
+console.log(difference(t, tt));

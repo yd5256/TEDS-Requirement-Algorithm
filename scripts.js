@@ -63,6 +63,7 @@ async function testGetData(stuFile, reqFile) {
 //DO EVERYTHING IN TESTGETDATA
 let ELECTIVE_DEPARTMENT_ID;// = '28';
 let ELECTIVE_CREDIT_REQUIREMENT;// = 3.5;
+const MULTI_REQ_VARIABLES = ['requirementDepartmentId','requirementDepartment','requirementId','requirementName','requirementCreditAmount'];
 testGetData("./student2.csv", "./requirement.csv").then(result => {
   let student = result[0];
   let requirement = result[1];
@@ -95,10 +96,15 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
       let courseInstances = requirement.filter(course => course.stateCourseCode === r.stateCourseCode);
       //requirementCourseId is also different but that's not important
       if (courseInstances.length > 1) {
-        //takenCourse.requirementId2 = courseInstances[1].requirementId;
-        takenCourse.requirementDepartmentId = courseInstances.map(course => course.requirementDepartmentId);
-        takenCourse.requirementDepartment = courseInstances.map(course => course.requirementDepartment);
-        takenCourse.requirementId = courseInstances.map(course => course.requirementId);
+        // //takenCourse.requirementId2 = courseInstances[1].requirementId;
+        // takenCourse.requirementDepartmentId = courseInstances.map(course => course.requirementDepartmentId);
+        // takenCourse.requirementDepartment = courseInstances.map(course => course.requirementDepartment);
+        // takenCourse.requirementId = courseInstances.map(course => course.requirementId);
+        // takenCourse.requirementName = courseInstances.map(course => course.requirementName);
+        // takenCourse.requirementCreditAmount = courseInstances.map(course => course.requirementCreditAmount);
+        for (let j = 0; j < MULTI_REQ_VARIABLES.length; j++) {
+          takenCourse[MULTI_REQ_VARIABLES[j]] = courseInstances.map(course => course[MULTI_REQ_VARIABLES[j]]);
+        }
       }
       //else {
       //  takenCourse.requirementId2 = null;
@@ -133,13 +139,19 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
     multiReqCourses[i].courseCreditAmount = /*new Number*/multiReqStudent[i].transcript_credit;
   }
 
+  //console.log(multiTempArr.map(course => course.stateCourseCode));
+  multiTempArr.push(JSON.parse(JSON.stringify(multiTempArr[2]))); //TEMPORARY
+
+
   info = tempArr.sort((a,b) => {return a.requirementDepartmentId - b.requirementDepartmentId});
   multiReqCourses = multiTempArr.sort((a,b) => {return a.requirementDepartmentId - b.requirementDepartmentId});
+
 
   let acquired = 0;
   for (let i = 0; i < info.length; i++) {
     acquired += parseFloat(info[i].courseCreditAmount);
   }
+
 
 
 
@@ -447,8 +459,8 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
 
   //FAILED ALGORITHM END-----
 
-  let tempDirectory = arrayComboFinder(multiReqCourses, reqDirectory);
-  console.log(tempDirectory);
+  reqDirectory = arrayComboFinder(multiReqCourses, reqDirectory);
+  //console.log(tempDirectory['28'][1]);
 
   let initialized = [];
   for (let i = 0; i < depIds.length; i++) {
@@ -513,8 +525,8 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   }
   */
   
-  //console.log(reqDirectory);
-  //console.log(studentProfile.credits[0].data);//[0].requirements[0].courses);
+  //console.log(reqDirectory['1'][0].courses);
+  //console.log(studentProfile.credits[0].data[7]);//[0].requirements[0].courses);
   //console.log(courseIds);
   //console.log(info);
   //console.log(multiReqCourses);
@@ -708,6 +720,12 @@ function* productGen(arr, cur = []){
   }
 }
 
+function difference(a, b) {
+  return a.filter(function(v) {
+      return !this.get(v) || !this.set(v, this.get(v) - 1);
+  }, b.reduce( (acc, v) => acc.set(v, (acc.get(v) || 0) + 1), new Map() ));
+}
+
 //INPUT: 2D array of the requirementId arrays of the courses
 function arrayComboFinder(arr, directory) {
 
@@ -738,6 +756,9 @@ function arrayComboFinder(arr, directory) {
       //console.log(req);
       directoryCopy[course.requirementDepartmentId[course.requirementId.indexOf(req.toString())]].filter(obj => obj.requirementID === parseInt(req, 10))[0].courses.push(course);
     }
+    if (directoryCopy['3'][2].courses.length === 3) {
+      //console.log(directoryCopy['3']);
+    }
     
     //Potiential add-on: do the moving courses to electives here instead of only on the final product to include electives in the reqCount
     let completedCount = 0;
@@ -749,11 +770,14 @@ function arrayComboFinder(arr, directory) {
           //console.log(element[j]);
           if (key !== ELECTIVE_DEPARTMENT_ID) {
             let courseArray = element[j].courses;
-            let courseCredits = courseArray.map(course => parseFloat(course.courseCreditAmount), 10)
+            let courseCredits = courseArray.map(course => parseFloat(course.courseCreditAmount), 10);
             let courseSum = arrSum(courseCredits);
             if (courseSum > element[j].creditAmount) {
+              //console.log(element[j].requirementName, courseCredits);
               let newCombi = subarrayFinder(courseCredits, element[j].creditAmount);
-              let combiDifferences = courseCredits.filter(credit => newCombi.indexOf(credit) === -1);
+              ///console.log(element[j].requirementName, newCombi);
+              let combiDifferences = difference(courseCredits, newCombi);//courseCredits.filter(credit => newCombi.indexOf(credit) === -1);
+              //console.log(combiDifferences);
               if (combiDifferences.length > 0) {
                 let electiveCourses = [];
                 for (let k = 0; k < combiDifferences.length; k++) {
@@ -767,7 +791,7 @@ function arrayComboFinder(arr, directory) {
                   directoryCopy[ELECTIVE_DEPARTMENT_ID].push(reqCopy);
                   electiveIndex = directoryCopy[ELECTIVE_DEPARTMENT_ID].length - 1;
                 }
-                directoryCopy[ELECTIVE_DEPARTMENT_ID][electiveIndex].courses.concat(electiveCourses);
+                directoryCopy[ELECTIVE_DEPARTMENT_ID][electiveIndex].courses = directoryCopy[ELECTIVE_DEPARTMENT_ID][electiveIndex].courses.concat(electiveCourses);
                 directoryCopy[ELECTIVE_DEPARTMENT_ID][electiveIndex].passedCredits = arrSum(directoryCopy[ELECTIVE_DEPARTMENT_ID][electiveIndex].courses.map(course => parseFloat(course.courseCreditAmount, 10)));
                 //sort the electice req courses and normal req courses by reqid
               }
@@ -803,6 +827,25 @@ function arrayComboFinder(arr, directory) {
     }
   }
   //console.log(mostReqsFilled.combinationArray, arr);
+
+  
+  for (const key in mostReqsFilled.directory) {
+    if (Object.hasOwnProperty.call(mostReqsFilled.directory, key)) {
+      const element = mostReqsFilled.directory[key];
+      for (let i = 0; i < element.length; i++) {
+        let courseArr = element[i].courses;
+        for (let j = 0; j < courseArr.length; j++) {
+          if (typeof courseArr[j].requirementId === 'object') {
+            let correctIndex = courseArr[j].requirementId.indexOf(element[i].requirementID.toString());
+            for (let k = 0; k < MULTI_REQ_VARIABLES.length; k++) {
+              courseArr[j][MULTI_REQ_VARIABLES[k]] = courseArr[j][MULTI_REQ_VARIABLES[k]][correctIndex];
+            }
+          }
+        }
+      }
+    }
+  }
+  
   return mostReqsFilled.directory;
 }
 

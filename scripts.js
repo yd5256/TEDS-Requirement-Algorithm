@@ -102,20 +102,25 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
   let acquired = 0;
   for (let i = 0; i < info.length; i++) {
     acquired += parseFloat(info[i].courseCreditAmount);
-  }  
+  }
+  for (let i = 0; i < multiReqCourses; i++) {
+    acquired += parseFloat(multiReqCourses[i].courseCreditAmount);
+  }
+
 
   //Instead of a constant 22 required, add up all requirement required credits
   //Also, make missing credits equal 0 if there are more credits than required using an if else statement after the declaration of studentProfile
   const studentProfile = {
     credits: [
       {
-        passedCredits: parseFloat(acquired),
-        requiredCredits: 22,
-        missingCredits: 22 - acquired,
+        passedCredits: acquired,
+        requiredCredits: 0,
+        missingCredits: 0,
         data: []
       }
     ]
   }
+  
 
 
   //Adding departments based on all departments available
@@ -202,6 +207,26 @@ testGetData("./student2.csv", "./requirement.csv").then(result => {
     reqDirectory[depIds[i]].sort((a,b) => {return parseInt(a.requirementID, 10) - parseInt(b.requirementID, 10)});
     multiReqDirectory[depIds[i]].sort((a,b) => {return parseInt(a.requirementID, 10) - parseInt(b.requirementID, 10)});
   }
+
+  let requiredCreditSum = 0;
+  for (const key in reqDirectory) {
+    if (Object.hasOwnProperty.call(reqDirectory, key)) {
+      const dep = reqDirectory[key];
+      if (key === ELECTIVE_DEPARTMENT_ID) {
+        requiredCreditSum += ELECTIVE_CREDIT_REQUIREMENT;
+      }
+      else {
+        requiredCreditSum += arrSum(dep.map(req => req.creditAmount));
+      }
+    }
+  }
+
+  studentProfile.credits[0].requiredCredits = requiredCreditSum;
+  let creditsMissing = requiredCreditSum - acquired;
+  if (creditsMissing < 0) {
+    creditsMissing = 0;
+  }
+  studentProfile.credits[0].missingCredits = creditsMissing;
 
   reqDirectory = arrayComboFinder(multiReqCourses, reqDirectory);
 
@@ -450,6 +475,10 @@ function arrayComboFinder(arr, directory) {
       }
     }
     directoryCopy[ELECTIVE_DEPARTMENT_ID].sort((a,b) => {return parseInt(a.requirementID, 10) - parseInt(b.requirementID, 10)});
+
+    if (arrSum(directoryCopy[ELECTIVE_DEPARTMENT_ID].map(req => req.passedCredits)) >= ELECTIVE_CREDIT_REQUIREMENT) {
+      completedCount++;
+    }
 
     let isMoreOptimal = false;
     if (completedCount === mostReqsFilled.numReqsFilled) {
